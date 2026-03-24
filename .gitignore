@@ -1,0 +1,6 @@
+target/
+.metadata/
+.idea/
+.sts4-cache/
+*.class
+*.log
