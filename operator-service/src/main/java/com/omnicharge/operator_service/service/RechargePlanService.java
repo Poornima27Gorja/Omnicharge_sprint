@@ -11,6 +11,9 @@ public interface RechargePlanService {
 
     RechargePlanDto updatePlan(Long id, RechargePlanRequest request);
 
+    /** PATCH — toggles only the status field (ACTIVE / INACTIVE). */
+    RechargePlanDto updatePlanStatus(Long id, String status);
+
     void deletePlan(Long id);
 
     RechargePlanDto getPlanById(Long id);

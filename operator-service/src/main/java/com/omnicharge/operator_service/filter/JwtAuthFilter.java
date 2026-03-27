@@ -19,49 +19,46 @@ import java.util.Collections;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtUtil jwtUtil;
+	@Autowired
+	private JwtUtil jwtUtil;
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
+	@Override
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+			throws ServletException, IOException {
 
-        try {
-            String authHeader = request.getHeader("Authorization");
+		try {
+			String authHeader = request.getHeader("Authorization");
 
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
+			if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+				filterChain.doFilter(request, response);
+				return;
+			}
 
-            String token = authHeader.substring(7);
+			String token = authHeader.substring(7);
 
-            if (!jwtUtil.validateToken(token)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
+			if (!jwtUtil.validateToken(token)) {
+				filterChain.doFilter(request, response);
+				return;
+			}
 
-            String username = jwtUtil.extractUsername(token);
-            String role = jwtUtil.extractRole(token);
+			String username = jwtUtil.extractUsername(token);
+			String role = jwtUtil.extractRole(token);
 
-            // Build authentication directly from JWT claims - no DB call needed
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                username,
-                                null,
-                                Collections.singletonList(new SimpleGrantedAuthority(role))
-                        );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
+			// Build authentication directly from JWT claims - no DB call needed
+			if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+				UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, null,
+						Collections.singletonList(new SimpleGrantedAuthority(role)));
+				authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+				SecurityContextHolder.getContext().setAuthentication(authToken);
+			}
 
-        } catch (Exception ex) {
-            SecurityContextHolder.clearContext();
-        }
-
-        filterChain.doFilter(request, response);
-    }
+		} catch (Exception ex) {
+			SecurityContextHolder.clearContext();
+			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+			response.setContentType("application/json");
+			response.getWriter().write("{\"error\": \"Invalid or expired token\"}");
+			return; // ← STOP. Do not proceed to the controller.
+		}
+		filterChain.doFilter(request, response);
+	}
 }

@@ -1,46 +1,47 @@
 package com.omnicharge.notification_service.messaging;
 
 import com.omnicharge.notification_service.dto.PaymentResultMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 @Component
 public class NotificationConsumer {
 
-    // Now listens to notification queue which receives ONLY after payment is done
+    private static final Logger log = LoggerFactory.getLogger(NotificationConsumer.class);
+
     @RabbitListener(queues = "${rabbitmq.notification.queue}")
     public void consumePaymentResult(PaymentResultMessage result) {
 
-        System.out.println();
-        System.out.println("==================================================");
-        System.out.println("      NOTIFICATION SERVICE - PAYMENT RESULT        ");
-        System.out.println("==================================================");
-        System.out.println("  Recharge ID     : " + result.getRechargeId());
-        System.out.println("  Transaction ID  : " + result.getTransactionId());
-        System.out.println("  Username        : " + result.getUsername());
-        System.out.println("  Mobile          : " + result.getMobileNumber());
-        System.out.println("  Operator        : " + result.getOperatorName());
-        System.out.println("  Plan            : " + result.getPlanName());
-        System.out.println("  Amount          : Rs. " + result.getAmount());
-        System.out.println("  Validity        : " + result.getValidity());
-        System.out.println("  Data            : " + result.getDataInfo());
-        System.out.println("  Payment Status  : " + result.getStatus());
+        log.info("==================================================");
+        log.info("      NOTIFICATION SERVICE - PAYMENT RESULT        ");
+        log.info("==================================================");
+        log.info("  Recharge ID     : {}", result.getRechargeId());
+        log.info("  Transaction ID  : {}", result.getTransactionId());
+        log.info("  Username        : {}", result.getUsername());
+        log.info("  Mobile          : {}", result.getMobileNumber());
+        log.info("  Operator        : {}", result.getOperatorName());
+        log.info("  Plan            : {}", result.getPlanName());
+        log.info("  Amount          : Rs. {}", result.getAmount());
+        log.info("  Validity        : {}", result.getValidity());
+        log.info("  Data            : {}", result.getDataInfo());
+        log.info("  Payment Status  : {}", result.getStatus());
+
         if (result.getFailureReason() != null) {
-            System.out.println("  Failure Reason  : " + result.getFailureReason());
+            log.warn("  Failure Reason  : {}", result.getFailureReason());
         }
-        System.out.println("  Processed At    : " + result.getProcessedAt());
-        System.out.println("==================================================");
+        log.info("  Processed At    : {}", result.getProcessedAt());
+        log.info("==================================================");
 
         sendSmsNotification(result);
         sendEmailNotification(result);
 
-        System.out.println();
-        System.out.println("  NOTIFICATIONS SENT SUCCESSFULLY");
-        System.out.println("  RechargeId     : " + result.getRechargeId());
-        System.out.println("  TransactionId  : " + result.getTransactionId());
-        System.out.println("  Final Status   : " + result.getStatus());
-        System.out.println("==================================================");
-        System.out.println();
+        log.info("  NOTIFICATIONS SENT SUCCESSFULLY");
+        log.info("  RechargeId     : {}", result.getRechargeId());
+        log.info("  TransactionId  : {}", result.getTransactionId());
+        log.info("  Final Status   : {}", result.getStatus());
+        log.info("==================================================");
     }
 
     private void sendSmsNotification(PaymentResultMessage result) {
@@ -72,48 +73,41 @@ public class NotificationConsumer {
             );
         }
 
-        System.out.println();
-        System.out.println("--------------------------------------------------");
-        System.out.println("                 SMS NOTIFICATION                  ");
-        System.out.println("--------------------------------------------------");
-        System.out.println("  To      : " + result.getMobileNumber());
-        System.out.println("  Message : " + sms);
-        System.out.println("--------------------------------------------------");
+        log.info("--------------------------------------------------");
+        log.info("                 SMS NOTIFICATION                  ");
+        log.info("--------------------------------------------------");
+        log.info("  To      : {}", result.getMobileNumber());
+        log.info("  Message : {}", sms);
+        log.info("--------------------------------------------------");
     }
 
     private void sendEmailNotification(PaymentResultMessage result) {
-        System.out.println();
-        System.out.println("--------------------------------------------------");
-        System.out.println("                EMAIL NOTIFICATION                 ");
-        System.out.println("--------------------------------------------------");
-        System.out.println("  To      : " + result.getUsername() + "@omnicharge.com");
-        System.out.println("  Subject : Recharge " + result.getStatus()
-                + " - OmniCharge");
-        System.out.println("  Body    :");
-        System.out.println();
-        System.out.println("  Dear " + result.getUsername() + ",");
-        System.out.println();
+        log.info("--------------------------------------------------");
+        log.info("                EMAIL NOTIFICATION                 ");
+        log.info("--------------------------------------------------");
+        log.info("  To      : {}@omnicharge.com", result.getUsername());
+        log.info("  Subject : Recharge {} - OmniCharge", result.getStatus());
+        log.info("  Body    :");
+        log.info("  Dear {},", result.getUsername());
 
         if ("SUCCESS".equals(result.getStatus())) {
-            System.out.println("  Your recharge was SUCCESSFUL.");
+            log.info("  Your recharge was SUCCESSFUL.");
         } else {
-            System.out.println("  Your recharge has FAILED.");
-            System.out.println("  Reason : " + result.getFailureReason());
+            log.warn("  Your recharge has FAILED.");
+            log.warn("  Reason : {}", result.getFailureReason());
         }
 
-        System.out.println();
-        System.out.println("  Transaction ID : " + result.getTransactionId());
-        System.out.println("  Recharge ID    : " + result.getRechargeId());
-        System.out.println("  Mobile         : " + result.getMobileNumber());
-        System.out.println("  Operator       : " + result.getOperatorName());
-        System.out.println("  Plan           : " + result.getPlanName());
-        System.out.println("  Amount         : Rs. " + result.getAmount());
-        System.out.println("  Validity       : " + result.getValidity());
-        System.out.println("  Data           : " + result.getDataInfo());
-        System.out.println("  Processed At   : " + result.getProcessedAt());
-        System.out.println();
-        System.out.println("  Thank you for using OmniCharge.");
-        System.out.println("  Team OmniCharge");
-        System.out.println("--------------------------------------------------");
+        log.info("  Transaction ID : {}", result.getTransactionId());
+        log.info("  Recharge ID    : {}", result.getRechargeId());
+        log.info("  Mobile         : {}", result.getMobileNumber());
+        log.info("  Operator       : {}", result.getOperatorName());
+        log.info("  Plan           : {}", result.getPlanName());
+        log.info("  Amount         : Rs. {}", result.getAmount());
+        log.info("  Validity       : {}", result.getValidity());
+        log.info("  Data           : {}", result.getDataInfo());
+        log.info("  Processed At   : {}", result.getProcessedAt());
+        log.info("  Thank you for using OmniCharge.");
+        log.info("  Team OmniCharge");
+        log.info("--------------------------------------------------");
     }
 }

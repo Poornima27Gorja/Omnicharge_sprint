@@ -6,17 +6,21 @@ import java.util.List;
 
 public interface UserService {
 
-	AuthResponse register(RegisterRequest request);
+    AuthResponse register(RegisterRequest request);
 
-	AuthResponse registerAdmin(AdminRegisterRequest request);
+    AuthResponse registerAdmin(AdminRegisterRequest request);
 
-	AuthResponse login(LoginRequest request);
+    // Shared login — returns token for both ROLE_USER and ROLE_ADMIN
+    AuthResponse login(LoginRequest request);
 
-	UserDto getUserProfile(String username);
+    // Admin-portal login — rejects the request if the account is not ROLE_ADMIN
+    AuthResponse adminLogin(LoginRequest request);
 
-	List<UserDto> getAllUsers();
+    UserDto getUserProfile(String username);
 
-	UserDto promoteToAdmin(Long userId);
+    List<UserDto> getAllUsers();
 
-	String changePassword(String username, ChangePasswordRequest request);
+    UserDto promoteToAdmin(Long userId);
+
+    String changePassword(String username, ChangePasswordRequest request);
 }

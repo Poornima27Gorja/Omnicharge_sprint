@@ -11,6 +11,9 @@ public interface OperatorService {
 
     OperatorDto updateOperator(Long id, OperatorRequest request);
 
+    /** PATCH — toggles only the status field (ACTIVE / INACTIVE). */
+    OperatorDto updateOperatorStatus(Long id, String status);
+
     void deleteOperator(Long id);
 
     OperatorDto getOperatorById(Long id);

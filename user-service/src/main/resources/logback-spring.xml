@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  logback-spring.xml — user-service
+  FIXED: Removed %clr colour patterns — they only work at full Spring Boot startup,
+         not during @WebMvcTest / @SpringBootTest slices, causing IllegalStateException.
+  - Console appender : plain structured output, works in all environments
+  - Rolling file     : daily rotation, 30-day history, 500 MB total cap
+  - SonarQube-safe   : no System.out.println anywhere
+-->
+<configuration>
+
+    <!-- ── Properties ──────────────────────────────────────────────────── -->
+    <property name="LOG_DIR"     value="logs"/>
+    <property name="SERVICE"     value="user-service"/>
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
+
+    <!-- ── Console Appender (plain — no %clr) ───────────────────────────── -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ── Rolling File Appender ────────────────────────────────────────── -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${SERVICE}.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/${SERVICE}.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ── Loggers ──────────────────────────────────────────────────────── -->
+    <springProfile name="dev">
+        <logger name="com.omnicharge" level="DEBUG"/>
+    </springProfile>
+    <springProfile name="!dev">
+        <logger name="com.omnicharge" level="INFO"/>
+    </springProfile>
+
+    <!-- Suppress noisy framework logs -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.hibernate.SQL"   level="WARN"/>
+    <logger name="com.netflix"         level="WARN"/>
+    <logger name="org.apache"          level="WARN"/>
+
+    <!-- ── Root ─────────────────────────────────────────────────────────── -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>

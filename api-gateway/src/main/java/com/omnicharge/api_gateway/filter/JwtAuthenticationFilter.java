@@ -14,19 +14,36 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-// GlobalFilter runs on every request passing through the gateway
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     @Autowired
     private JwtUtil jwtUtil;
 
-    // Public endpoints that do not need JWT validation
+    /**
+     * Public endpoints — JWT validation is SKIPPED for these paths.
+     *
+     * Includes:
+     *   /api/auth/register         — user registration
+     *   /api/auth/register-admin   — admin registration (secret-key protected internally)
+     *   /api/auth/login            — user + admin standard login
+     *   /api/auth/admin/login      — admin-portal dedicated login (rejects non-admins)
+     *   /actuator                  — health checks
+     *   /swagger-ui, /v3/api-docs  — Swagger UI
+     */
     private static final List<String> PUBLIC_ENDPOINTS = List.of(
-            "/api/auth/register",
-            "/api/auth/register-admin",
-            "/api/auth/login",
-            "/actuator"
+        "/api/auth/register",
+        "/api/auth/register-admin",
+        "/api/auth/login",
+        "/api/auth/admin/login",
+        "/actuator",
+        "/swagger-ui",
+        "/v3/api-docs",
+        "/webjars",
+        "/user-service/v3/api-docs",
+        "/operator-service/v3/api-docs",
+        "/recharge-service/v3/api-docs",
+        "/payment-service/v3/api-docs"
     );
 
     @Override
@@ -34,12 +51,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
-        // Allow public endpoints to pass through without token
         if (isPublicEndpoint(path)) {
             return chain.filter(exchange);
         }
 
-        // Check Authorization header exists
         if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
             return unauthorizedResponse(exchange, "Missing Authorization header");
         }
@@ -47,24 +62,24 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return unauthorizedResponse(exchange, "Invalid Authorization header format");
+            return unauthorizedResponse(exchange, "Invalid Authorization header format. Use: Bearer <token>");
         }
 
         String token = authHeader.substring(7);
 
-        // Validate JWT token
         if (!jwtUtil.validateToken(token)) {
             return unauthorizedResponse(exchange, "Invalid or expired token");
         }
 
-        // Extract user info and add to request headers for downstream services
         String username = jwtUtil.extractUsername(token);
-        String role = jwtUtil.extractRole(token);
+        String role     = jwtUtil.extractRole(token);
 
+        // Forward user identity to downstream services as headers
+        // Downstream services read X-Auth-Username and X-Auth-Role
         ServerHttpRequest mutatedRequest = request.mutate()
-                .header("X-Auth-Username", username)
-                .header("X-Auth-Role", role)
-                .build();
+            .header("X-Auth-Username", username)
+            .header("X-Auth-Role", role)
+            .build();
 
         return chain.filter(exchange.mutate().request(mutatedRequest).build());
     }
@@ -78,11 +93,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
         response.getHeaders().add("Content-Type", "application/json");
         var buffer = response.bufferFactory()
-                .wrap(("{\"error\": \"" + message + "\"}").getBytes());
+            .wrap(("{\"error\": \"" + message + "\"}").getBytes());
         return response.writeWith(Mono.just(buffer));
     }
 
-    // Run this filter before all other filters
     @Override
     public int getOrder() {
         return -1;
